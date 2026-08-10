@@ -2,7 +2,60 @@
 import random
 import tkinter as tk
 
+class ModelBasedAgent:
+    def __init__(self):
+        self.visited_cells = set()
+        self.estimated_pos = [0, 0]
+        self.facing = (0, 1)
+        self.last_action = None
 
+    def sense_and_act(self, percept: dict) -> str:
+        if self.last_action == 'Up':
+            self.estimated_pos[0] += self.facing[0]
+            self.estimated_pos[1] += self.facing[1]
+        elif self.last_action == 'Left':
+            if self.facing == (0, 1):
+                self.facing = (-1, 0)
+            elif self.facing == (-1, 0):
+                self.facing = (0, -1)
+            elif self.facing == (0, -1):
+                self.facing = (1, 0)
+            elif self.facing == (1, 0):
+                self.facing = (0, 1)
+        elif self.last_action == 'Right':
+            if self.facing == (0, 1):
+                self.facing = (1, 0)
+            elif self.facing == (1, 0):
+                self.facing = (0, -1)
+            elif self.facing == (0, -1):
+                self.facing = (-1, 0)
+            elif self.facing == (-1, 0):
+                self.facing = (0, 1)
+
+        current_cell = tuple(self.estimated_pos)
+        self.visited_cells.add(current_cell)
+
+        left_facing_map = {
+            (0, 1): (-1, 0),
+            (-1, 0): (0, -1),
+            (0, -1): (1, 0),
+            (1, 0): (0, 1)
+        }
+        left_vector = left_facing_map[self.facing]
+        left_cell = (self.estimated_pos[0] + left_vector[0], self.estimated_pos[1] + left_vector[1])
+        left_is_visited = left_cell in self.visited_cells
+
+        if percept['food_here']:
+            action = 'Stay'
+        elif percept['wall_ahead'] and left_is_visited:
+            action = 'Right'
+        elif percept['wall_ahead']:
+            action = 'Left'
+        else:
+            action = 'Up'
+
+        self.last_action = action
+        return action
 class SimpleReflexAgent:
     def sense_and_act(self, percept: dict) -> str:
         if percept['food_here']:
