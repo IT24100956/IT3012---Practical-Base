@@ -54,16 +54,25 @@ class VisualGridHuntGame:
         self.collision = False
 
     def get_percept(self) -> dict:
-        return {
-            'agent_pos': list(self.agent_pos),
-            'opponent_positions': [list(op) for op in self.opponents],
-            'smells_food': tuple(self.agent_pos) in self.food_positions,
-            'smells_toxin': tuple(self.agent_pos) in self.toxic_traps,  # IMPLEMENTATION: Added Toxin Sensor
-            'hit_wall': tuple(self.agent_pos) in self.walls,
-            'collision': self.collision,
-            'score': self.score,
-            'remaining_food': len(self.food_positions)
-        }
+    facing_vector = getattr(self, 'facing', (0, 0))
+    cell_ahead = (
+        self.agent_pos[0] + facing_vector[0],
+        self.agent_pos[1] + facing_vector[1]
+    )
+    
+    current_cell = tuple(self.agent_pos)
+
+    return {
+        'wall_ahead': cell_ahead in self.walls,
+        'food_ahead': cell_ahead in self.food_positions,
+        'toxin_ahead': cell_ahead in self.toxic_traps,
+        'food_here': current_cell in self.food_positions,
+        'smells_toxin': current_cell in self.toxic_traps,
+        'hit_wall': current_cell in self.walls,
+        'collision': self.collision,
+        'score': self.score,
+        'remaining_food': len(self.food_positions)
+    }
 
     def execute_action(self, action: str):
         self.steps += 1
