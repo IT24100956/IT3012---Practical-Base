@@ -3,6 +3,15 @@ import random
 import tkinter as tk
 
 
+class SimpleReflexAgent:
+    def sense_and_act(self, percept: dict) -> str:
+        if percept['food_here']:
+            return 'Stay'
+        elif percept['wall_ahead']:
+            return 'Left'
+        else:
+            return 'Up'
+
 class VisualGridHuntGame:
     """A flexible Pacman-style grid environment with support for configurable opponents and larger scales."""
 
