@@ -1,6 +1,7 @@
 import math
 import random
 import heapq
+from logic_engine import KnowledgeBase
 
 class SearchAgent:
     def __init__(self, active_algo='AStar'):
@@ -15,6 +16,11 @@ class SearchAgent:
             'Right': (1, 0)
         }
 
+        # Initialize Knowledge Base with safety rules
+        self.kb = KnowledgeBase()
+        self.kb.tell_rule(['TargetVisible', 'HasDust'], 'SafeToEngage')
+        self.kb.tell_rule(['SafeToEngage', 'BloodseekerMissing'], 'Retreat')
+
     def manhattan_distance(self, pos, goal):
         return abs(pos[0] - goal[0]) + abs(pos[1] - goal[1])
 
@@ -26,7 +32,10 @@ class SearchAgent:
             return self.euclidean_distance(pos, goal)
         return self.manhattan_distance(pos, goal)
 
-    def astar_search(self, start_pos, goal_pos, walls, grid_size, heuristic_type='manhattan'):
+    def astar_search(self, start_pos, goal_pos, walls, grid_size, heuristic_type='manhattan', tile_facts=None):
+        if tile_facts is None:
+            tile_facts = {}
+
         frontier = []
         reached_states = set()
         
@@ -56,6 +65,15 @@ class SearchAgent:
                     next_pos not in walls and 
                     next_pos not in reached_states):
                     
+                    # Logic feasibility check
+                    self.kb.clear_facts()
+                    for fact in tile_facts.get(next_pos, []):
+                        self.kb.tell_fact(fact)
+                    self.kb.forward_chain()
+                    
+                    if 'Retreat' in self.kb.facts:
+                        continue
+                    
                     new_g = current_g + 1
                     new_h = self.get_heuristic(next_pos, goal_pos, heuristic_type)
                     new_f = new_g + new_h
@@ -74,8 +92,13 @@ class SearchAgent:
         if not self.plan and remaining_food:
             closest_food = min(remaining_food, key=lambda f: self.manhattan_distance(pos, f))
             
+            tile_facts = {
+                (1, 0): ['TargetVisible', 'HasDust', 'BloodseekerMissing'],  # Retreat deduced: blocked
+                (0, 1): ['TargetVisible', 'HasDust'],                        # SafeToEngage: allowed
+            }
+            
             if self.active_algo == 'AStar':
-                self.plan = self.astar_search(pos, closest_food, walls, grid_size, heuristic_type='manhattan')
+                self.plan = self.astar_search(pos, closest_food, walls, grid_size, heuristic_type='manhattan', tile_facts=tile_facts)
                 
         if self.plan:
             return self.plan.pop(0)
